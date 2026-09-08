@@ -1,0 +1,17 @@
+# Virtual Environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Results
+results/
+*.json
+
+# IDE
+.vscode/
+.idea/
+*.iml
