@@ -120,9 +120,6 @@ async def collect_page_data(page):
                 const priceEl = el.querySelector('[data-marker="item-price-value"]');
                 const price = priceEl ? priceEl.textContent.trim() : null;
 
-                const addressEl = el.querySelector('[data-marker="item-location"]');
-                const address = addressEl ? addressEl.textContent.trim() : null;
-
                 const dateEl = el.querySelector('[data-marker="item-date"]');
                 const date = dateEl ? dateEl.textContent.trim() : null;
 
@@ -130,7 +127,6 @@ async def collect_page_data(page):
                     id: id,
                     title: title,
                     price: price,
-                    address: address,
                     date: date,
                     url: url
                 });
