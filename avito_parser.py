@@ -25,8 +25,10 @@ async def check_captcha(page):
     return False
 
 async def wait_and_resolve_captcha(page):
-    attempts = 0
-    while True:
+    """Ожидает загрузки страницы: либо капча решается, либо загружаются объявления."""
+    max_retries = 3
+    for attempt in range(max_retries):
+        # Проверяем капчу
         if await check_captcha(page):
             print("\n[!!!] Обнаружена капча! Решите её вручную в браузере.")
             user_input = input("После решения нажмите Enter (или 'skip' для пропуска): ")
@@ -34,26 +36,37 @@ async def wait_and_resolve_captcha(page):
                 print("⏩ Пропускаем проверку капчи.")
                 await page.reload(wait_until="domcontentloaded")
                 await asyncio.sleep(2)
-                if await check_captcha(page):
+                # После перезагрузки проверяем наличие объявлений
+                try:
+                    await page.wait_for_selector('[data-marker="item"]', timeout=10000)
+                    return True
+                except:
+                    print(f"⚠️ После перезагрузки объявления не найдены (попытка {attempt+1})")
                     continue
-                return True
-            await page.wait_for_timeout(3000)
-            await page.reload(wait_until="domcontentloaded")
-            await asyncio.sleep(2)
-            if not await check_captcha(page):
-                return True
-            attempts += 1
-            if attempts > config.CAPTCHA_MAX_ATTEMPTS:
-                print(f"⚠️ Слишком много попыток ({config.CAPTCHA_MAX_ATTEMPTS}). Пропускаем.")
-                return False
+            else:
+                # Ждём, пока пользователь решит капчу
+                await page.wait_for_timeout(3000)
+                await page.reload(wait_until="domcontentloaded")
+                await asyncio.sleep(2)
+                # Проверяем, появились ли объявления
+                try:
+                    await page.wait_for_selector('[data-marker="item"]', timeout=10000)
+                    return True
+                except:
+                    print(f"⚠️ После решения капчи объявления не найдены (попытка {attempt+1})")
+                    continue
         else:
             print("✅ Капча не обнаружена. Ожидаем загрузки объявлений...")
             try:
                 await page.wait_for_selector('[data-marker="item"]', timeout=10000)
                 return True
             except:
-                print("⚠️ Объявления не найдены.")
-                return True
+                print(f"⚠️ Объявления не найдены. Перезагружаем страницу (попытка {attempt+1})")
+                await page.reload(wait_until="domcontentloaded")
+                await asyncio.sleep(2)
+                continue
+    print("❌ Не удалось загрузить объявления после нескольких попыток.")
+    return False
 
 async def get_page_urls(page):
     await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
@@ -90,12 +103,8 @@ async def get_page_urls(page):
     return urls
 
 async def collect_page_data(page):
-    try:
-        await page.wait_for_selector('[data-marker="item"]', timeout=10000)
-    except:
-        print("❗ На странице нет объявлений.")
-        return []
-
+    """Собирает данные с карточек (предполагается, что они уже загружены)."""
+    # Не ждём селектор, просто собираем то, что есть
     await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
     await asyncio.sleep(2)
 
@@ -104,7 +113,6 @@ async def collect_page_data(page):
             const items = document.querySelectorAll('[data-marker="item"]');
             const results = [];
             items.forEach(el => {
-                // Извлекаем ID из ссылки (исправленный селектор)
                 const linkEl = el.querySelector('a[href*="/"]');
                 const url = linkEl ? linkEl.href : null;
                 let id = null;
@@ -112,14 +120,10 @@ async def collect_page_data(page):
                     const match = url.match(/_(\\d+)$/);
                     if (match) id = match[1];
                 }
-
-                // Основные поля
                 const titleEl = el.querySelector('[data-marker="item-title"]');
                 const title = titleEl ? titleEl.textContent.trim() : null;
-
                 const priceEl = el.querySelector('[data-marker="item-price-value"]');
                 const price = priceEl ? priceEl.textContent.trim() : null;
-
                 const dateEl = el.querySelector('[data-marker="item-date"]');
                 const date = dateEl ? dateEl.textContent.trim() : null;
 
