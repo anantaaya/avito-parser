@@ -77,7 +77,7 @@ python avito_parser.py
   "price": "32 500 ₽",
   "address": "Москва",
   "date": "7 дней назад",
-  "url": "https://www.avito.ru/...",
+  "url": "https://www.avito.ru/..."
 }
 ```
 
@@ -88,10 +88,10 @@ python avito_parser.py
 ```
 avito-parser/
 ├── avito_parser.py          # Основной скрипт
+├── config.py                # Файл конфигурации
 ├── requirements.txt         # Зависимости
 ├── README.md                # Этот файл
 ├── .gitignore               # Игнорируемые файлы
-├── config.py                # Файл конфигурации (URL, лимиты, таймауты)
 └── results/
     └── avito_all_pages.json # Результат (создаётся автоматически)
 ```
